@@ -56,6 +56,7 @@ class agent():
 
         return max_q[0]
 
+    # 수정중
     def _argmax_Q(self, state):
         state_index = np.where(state==1)[0]
         target_indexs = [state_index-1, state_index-10, state_index+1, state_index+10]
@@ -67,6 +68,7 @@ class agent():
 
         return max_q[0]
 
+    # 수정중
     def state_value_update(self, state, action, reword):
         state_index = int(np.where(state==1))
         self.state_value[action, state_index] += self.learning_rate*(reword + self.gamma*self._max_Q(state) - self.state_value[action, state_index])
