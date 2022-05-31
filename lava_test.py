@@ -21,6 +21,6 @@ agent = agent()
 while not done:
     action = agent.action()
     # action = random.randrange(4): random actions
-    ns, reward, done, _ = env.step(action)
+    ns, reward, done, i = env.step(action)
     cum_reward += reward
 print(f"total reward: {cum_reward}")
