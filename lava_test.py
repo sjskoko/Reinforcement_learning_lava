@@ -1,6 +1,6 @@
 import gym
 from lava_grid import ZigZag6x10
-from agent_lava import agent
+from agent_lava_v1 import agent
 import random
 
 # default setting
