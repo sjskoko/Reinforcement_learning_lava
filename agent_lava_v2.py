@@ -1,6 +1,7 @@
 import numpy as np
 import random
 import math
+from tqdm import tqdm
 
 import gym
 from lava_grid import ZigZag6x10
@@ -14,10 +15,12 @@ re-training code 추가가 필요합니다.
 
 class agent():
     
-    def __init__(self, grid_size=60, epsilon=0.1, learning_rate = 0.1, gamma=1):
+    def __init__(self, grid_size=60, epsilon=0, learning_rate = 0.1, gamma=1, set_parameter=True):
 
         self.grid_size = grid_size
         self.q_table = dict()
+        for x in range(self.grid_size):
+            self.q_table[x] = {0:0, 1:0, 2:0, 3:0} # 0: left, 1: up, 2: right, 3: down
 
 
         self.action_space = [0, 1, 2, 3]
@@ -28,7 +31,8 @@ class agent():
         
         self.episode_num = 3000
         
-        self.activate_learn(3000) # initial parameter setting
+        if set_parameter==True:
+            self.activate_learn(3000) # initial parameter setting
         
     def action(self, s, greedy = True):
 
@@ -93,7 +97,10 @@ class agent():
 
             # 
             while not done:
-                action = self.action(s, greedy=False)
+                if self.episode_num<=300:
+                    action = self.action(s, greedy=False)
+                else:
+                    action = self.action(s, greedy=True)
                 ns, reward, done, _ = env.step(action)
                 ns = env.s
                 self.learn(s, reward, ns, action)

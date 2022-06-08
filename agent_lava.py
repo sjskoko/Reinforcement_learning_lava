@@ -1,96 +1,106 @@
 import numpy as np
+import random
+import math
+from tqdm import tqdm
+
+import gym
+from lava_grid import ZigZag6x10
+
 
 class agent():
     
-    def __init__(self, grid_size=(4, 60), learning_rate = 0.9, gamma=0.9):
-        self.sample_actions = [3, 3, 3, 3, 2, 2, 2, 2, 2, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3]
-        self.action_space = [0, 1, 2, 3]
-        self.state_value = self._state_value_function(grid_size)
+    def __init__(self, grid_size=60, epsilon=0, learning_rate = 0.1, gamma=1, set_parameter=True):
+
         self.grid_size = grid_size
-        self.step = 0
+        self.q_table = dict()
+        for x in range(self.grid_size):
+            self.q_table[x] = {0:0, 1:0, 2:0, 3:0} # 0: left, 1: up, 2: right, 3: down
+
+
+        self.action_space = [0, 1, 2, 3]
+
         self.learning_rate = learning_rate
         self.gamma = gamma
-        self.epsilon = 1.0
+        self.epsilon = epsilon
         
-    def action(self):
+        self.episode_num = 3000
         
+        if set_parameter==True:
+            self.activate_learn(3000) # initial parameter setting
         
+    def action(self, s, greedy = True):
 
+        if type(s) == np.ndarray:
+            state_index = np.where(s==1)[0][0]
+            s=state_index
 
-
-
-        return self.sample_actions.pop(0)
-
-    def _state_value_function(self, grid_size):
-        state_value = np.zeros(grid_size)
-
-        return state_value
-    
-    # def _max_Q(self, state):
-    #     state_index = int(np.where(state==1))
-    #     target_indexs = [state_index-1, state_index-10, state_index+1, state_index+10]
-    #     max_q = 0
-    #     action = None
-    #     for i, target_index in enumerate(target_indexs):
-    #         if target_index>=0 and target_index<60:
-    #             cand_q = self.state_value[target_index]
-    #             if cand_q>max_q:
-    #                 max_q = cand_q
-    #                 action = i
-    #     return max_q
-    
-    # def _argmax_Q(self, state):
-    #     state_index = int(np.where(state==1))
-    #     target_indexs = [state_index-1, state_index-10, state_index+1, state_index+10]
-    #     max_q = 0
-    #     action_q_pair = []
-    #     for i, target_index in enumerate(target_indexs):
-    #         if target_index>=0 and target_index<60:
-    #             cand_q = self.state_value[target_index]
-    #             action_q_pair.append((i, cand_q))
-    #     return action_q_pair
-
-    # complete
-    def _max_Q(self, state):
-        state_index = np.where(state==1)[0]
-        target_indexs = [state_index-1, state_index-10, state_index+1, state_index+10]
-        cand_q = []
-        for i, target_index in enumerate(target_indexs):
-            if target_index>=0 and target_index<60:
-                cand_q.append(self.state_value[:, target_index].reshape(4))
-        max_q = max([max(i) for i in cand_q])
-        print(max_q)
-        return max_q
-
-    # 수정중
-    def _argmax_Q(self, state):
-        state_index = np.where(state==1)[0]
-        target_indexs = [state_index-1, state_index-10, state_index+1, state_index+10]
-        cand_q = []
-        for i, target_index in enumerate(target_indexs):
-            if target_index>=0 and target_index<60:
-                cand_q.append(i, self.state_value[:, target_index].reshape(4))
-        max_q = max([max(i) for i in cand_q])
-
-        return max_q[0]
-
-    # 수정중
-    def state_value_update(self, state, action, reword):
-        state_index = int(np.where(state==1))
-        self.state_value[action, state_index] += self.learning_rate*(reword + self.gamma*self._max_Q(state) - self.state_value[action, state_index])
-
-
-
-
-
+        if np.random.uniform(0,1) < self.epsilon/(math.log10(self.episode_num)+1) and not greedy:
+            action = random.randint(0, len(self.action_space)-1)
+        else:
+            q_values_of_state = self.q_table[s]
+            max_value = max(q_values_of_state.values())
+            action = np.random.choice([k for k, v in q_values_of_state.items() if v == max_value])
 
         
+        return action
 
-if __name__ == '__main__':
-    agent = agent()
+    def learn(self, old_state, reward, new_state, action):
 
-    temp = (agent.state_value)
+        q_values_of_state = self.q_table[new_state]
+        max_q_value_in_new_state = max(q_values_of_state.values())
+        current_q_value = self.q_table[old_state][action]
 
+        self.q_table[old_state][action] = (1-self.learning_rate) * current_q_value + self.learning_rate * (reward + self.gamma * max_q_value_in_new_state)
 
+    def reset_q_table(self):
+        # reset q_table
+        self.q_table = dict()
+        for x in range(self.grid_size):
+            self.q_table[x] = {0:0, 1:0, 2:0, 3:0} # 0: left, 1: up, 2: right, 3: down
 
-    # https://github.com/michaeltinsley/Gridworld-with-Q-Learning-Reinforcement-Learning-/blob/master/Gridworld.ipynb
+    def activate_learn(self, num_episodes):
+        # reset episode_num
+        self.episode_num = 0
+
+        # reset q_table
+        self.q_table = dict()
+        for x in range(self.grid_size):
+            self.q_table[x] = {0:0, 1:0, 2:0, 3:0} # 0: left, 1: up, 2: right, 3: down
+
+        '''setting environment'''
+        # default setting
+        max_steps = 100
+        stochasticity = 0 # probability of the selected action failing and instead executing any of the remaining 3
+        no_render = True
+
+        env = ZigZag6x10(max_steps=max_steps, act_fail_prob=stochasticity, goal=(5, 9), numpy_state=False)
+        s = env.reset()
+        done = False
+        cum_reward = 0.0
+
+        record = []
+
+        # training based on given episode number
+        for i_episode in tqdm(range(num_episodes)):
+            self.episode_num += 1
+
+            '''reset environment'''
+            s = env.reset()
+            done = False
+            cum_reward = 0.0
+
+            # 
+            while not done:
+                if self.episode_num<=300:
+                    action = self.action(s, greedy=False)
+                else:
+                    action = self.action(s, greedy=True)
+                ns, reward, done, _ = env.step(action)
+                ns = env.s
+                self.learn(s, reward, ns, action)
+                cum_reward += reward
+                s = ns
+            
+            record.append(cum_reward)
+        
+        return record
