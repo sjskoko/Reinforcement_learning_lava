@@ -18,8 +18,6 @@ class agent():
 
         self.grid_size = grid_size
         self.q_table = dict()
-        for x in range(grid_size):
-            self.q_table[x] = {0:0, 1:0, 2:0, 3:0} # 0: left, 1: up, 2: right, 3: down
 
 
         self.action_space = [0, 1, 2, 3]
@@ -29,6 +27,8 @@ class agent():
         self.epsilon = epsilon
         
         self.episode_num = 3000
+        
+        self.activate_learn(3000) # initial parameter setting
         
     def action(self, s, greedy = True):
 
@@ -54,6 +54,12 @@ class agent():
 
         self.q_table[old_state][action] = (1-self.learning_rate) * current_q_value + self.learning_rate * (reward + self.gamma * max_q_value_in_new_state)
 
+    def reset_q_table(self):
+        # reset q_table
+        self.q_table = dict()
+        for x in range(self.grid_size):
+            self.q_table[x] = {0:0, 1:0, 2:0, 3:0} # 0: left, 1: up, 2: right, 3: down
+
     def activate_learn(self, num_episodes):
         # reset episode_num
         self.episode_num = 0
@@ -77,7 +83,7 @@ class agent():
         record = []
 
         # training based on given episode number
-        for i_episode in range(num_episodes):
+        for i_episode in tqdm(range(num_episodes)):
             self.episode_num += 1
 
             '''reset environment'''
