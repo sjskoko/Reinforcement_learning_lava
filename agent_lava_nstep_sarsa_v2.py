@@ -4,6 +4,8 @@ import random
 import math
 from tqdm import tqdm
 from collections import defaultdict
+import sys
+from lib import plots
 
 import gym
 from lava_grid import ZigZag6x10
@@ -37,7 +39,8 @@ class agent():
             state_index = np.where(state==1)[0][0]
             state=state_index
 
-        if np.random.uniform(0,1) < self.epsilon/(math.log10(self.episode_num)+1) and not greedy:
+        # if np.random.uniform(0,1) < self.epsilon/(math.log10(self.episode_num)+1) and not greedy:
+        if np.random.uniform(0,1) < self.epsilon and not greedy:
             action = random.randint(0, len(self.action_space)-1)
         else:
             q_values_of_state = self.q_table[state]
@@ -60,14 +63,22 @@ class agent():
         max_value = max(q_values_of_state.values())
         max_value_action = [k for k, v in q_values_of_state.items() if v == max_value]
 
-        exp_val_dict = {}
+        prob_dict = {}
         for action in q_values_of_state:
             epsilon_value = self.epsilon/(math.log10(self.episode_num)+1)
-            exp_val_dict[action] = epsilon_value/len(q_values_of_state)
+            prob_dict[action] = epsilon_value/len(q_values_of_state)
             if action in max_value_action:
-                exp_val_dict[action] += (1-epsilon_value)/len(max_value_action)
+                prob_dict[action] += (1-epsilon_value)/len(max_value_action)
         
-        return exp_val_dict
+        exp_val_dict = {}
+        for action in q_values_of_state:
+            exp_val_dict[action] = prob_dict[action] * q_values_of_state[action]
+
+        sum_exp_val = 0
+        for action in exp_val_dict:
+            sum_exp_val += exp_val_dict[action]
+        
+        return sum_exp_val
 
     def learn(self, old_state, reward, new_state, action):
 
@@ -130,7 +141,7 @@ class agent():
         
         return record
 
-    def n_step_sarsa(self, gamma, n_episode, alpha , n , learn_pi = True):
+    def n_step_sarsa(self, num_episodes, n=5, discount_factor=1.0, alpha=0.5):
 
         # reset episode_num
         self.episode_num = 0
@@ -150,66 +161,82 @@ class agent():
         done = False
         cum_reward = 0.0
 
-        record = defaultdict(float)
-        length_episode = defaultdict(int)
         
-        policy = {}
-        for episode in tqdm(range(n_episode)):
+        # The final action-value function.
+        # A nested dictionary that maps state -> (action -> action-value).
+        Q = defaultdict(lambda: np.zeros(env.action_space.n))
+        
+        # Keeps track of useful statistics
+        stats = plots.EpisodeStats(
+            episode_lengths=np.zeros(num_episodes),
+            episode_rewards=np.zeros(num_episodes))
+
+        # The policy we're following
+        
+        for i_episode in range(num_episodes):
+
             self.episode_num += 1
-            print('episode', episode)
+
+            # Print out which episode we're on, useful for debugging.
+            if (i_episode + 1) % 10 == 0:
+                print("\rEpisode {}/{}.".format(i_episode + 1, num_episodes), end="")
+                sys.stdout.flush()
+
+            # initializations
+            T = sys.maxsize
+            tau = 0
+            t = -1
+            stored_actions = {}
+            stored_rewards = {}
+            stored_states = {}
+            
+            # initialize first state
             state = env.reset()
-            is_done = False
             if self.episode_num<=3000:
                 action = self.action(state, greedy=False)
             else:
-                action = self.action(state, greedy=True)
-            # print(action)
-            s = ['states', 'actions', 'rewards']
-            n_step_store = defaultdict(list)
-            for key in s :
-                n_step_store[key] 
-            n_step_store["states"].append(state)
-            n_step_store["actions"].append(action)
-            n_step_store["rewards"].append(0)
-            t, T = 0 , 10000
-            while True :
-                if t < T : 
-                    next_state, reward, is_done, info = env.step(action)
-                    next_state = self.array_to_index(next_state) # nd.array -> int
-                    if self.episode_num<=3000:
-                        next_action = self.action(next_state, greedy=False)
-                    else:
-                        next_action = self.action(next_state, greedy=True)
-
-                    # print('in loop', next_action)
-                    n_step_store["states"].append(next_state)
-                    n_step_store["actions"].append(next_action)
-                    n_step_store["rewards"].append(reward)
-                    if is_done :
-                        record[episode] += np.sum(n_step_store["rewards"])
-                        T = t + 1
-                    else :
-                        length_episode[episode] += 1
-                print(f"{t} / {T}" , end="\r")
-                tau = t-n + 1
-                if tau >= 0 :
-                    G = 0 
-                    ## G만 구하는 과정 (현재 시점)
-                    for i in range(tau + 1, min([tau + n, T]) + 1):
-                        G += (gamma ** (i - tau - 1)) * n_step_store["rewards"][i] # n_step_store["rewards"][i-1] -> n_step_store["rewards"][i]
-                    ## (미래 시점) 더하는 부분
-                    if tau + n < T :
-                        G += (gamma ** n) * self.q_table[n_step_store["states"][tau + n]][n_step_store["actions"][tau + n]]
-                    
-                    print('update',n_step_store["states"][tau], 'step', n_step_store["actions"][tau], 'action', alpha * (G - self.q_table[n_step_store["states"][tau]][n_step_store["actions"][tau]]), 'value', '(support reward: ', )
-                    self.q_table[n_step_store["states"][tau]][n_step_store["actions"][tau]] += alpha * (G - self.q_table[n_step_store["states"][tau]][n_step_store["actions"][tau]])
-                    ## On-Policy 바로 바로 학습 n-step 이후로는 바로 학습하는 구조인 듯
-                    if learn_pi :    
-                        policy[n_step_store["states"][tau]] = self.action(n_step_store["states"][tau], greedy=False)
-                state = next_state
-                action = next_action
-                if tau == (T-1):
-                    # print(n_step_store)
-                    break
+                action = self.action(state, greedy=True)      
+                  
+            stored_actions[0] = action
+            stored_states[0] = state
+            
+            while tau < (T - 1):
                 t += 1
-        return policy, record
+                if t < T:
+                    state, reward, done, _ = env.step(action)
+
+                    state = self.array_to_index(state)
+                    
+                    stored_rewards[(t+1) % (n+1)] = reward
+                    stored_states[(t+1) % (n+1)] = state
+                    
+                    # Update statistics
+                    stats.episode_rewards[i_episode] += reward
+                    stats.episode_lengths[i_episode] = t
+                    
+                    if done:
+                        T = t + 1
+                    else:
+                        if self.episode_num<=3000:
+                            action = self.action(state, greedy=False)
+                        else:
+                            action = self.action(state, greedy=True)   
+                        stored_actions[(t+1) % (n+1)] = action
+                tau = t - n + 1
+                
+                if tau >= 0:
+                    # calculate G(tau:tau+n)
+                    G = np.sum([discount_factor**(i-tau-1)*stored_rewards[i%(n+1)] for i in range(tau+1, min(tau+n, T)+1)])
+                    
+                    
+                    if tau + n < T:
+                        # G += discount_factor**n * self.q_table[stored_states[(tau+n) % (n+1)]][stored_actions[(tau+n) % (n+1)]]
+                        # expected sarsa
+                        G += discount_factor**n * self.expected_value(stored_states[(tau+n) % (n+1)])
+                    
+                    tau_s, tau_a = stored_states[tau % (n+1)], stored_actions[tau % (n+1)]
+                    
+                    # update Q value with n step return
+                    self.q_table[tau_s][tau_a] += alpha * (G - self.q_table[tau_s][tau_a])
+            
+        return self.q_table, stats
