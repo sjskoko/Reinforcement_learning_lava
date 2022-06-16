@@ -1,3 +1,5 @@
+# test.py + grid search
+
 import random
 import numpy as np
 import torch
@@ -21,7 +23,7 @@ def evaluate_performance(team_number, seeds, env_str, env_kwargs):
         torch.manual_seed(seed)
 
         env = Env(**env_kwargs)
-        
+
         agent_instance = Agent()
         agent_instance.load_weights() 
 
@@ -41,24 +43,35 @@ def evaluate_sample_efficiency(team_number, seeds, env_str, env_kwargs):
     elif env_str == 'lava':
         episodes = 3000
 
-    se_list = []
+    gamma_list = [0.90, 0.95]
+    lr_list = [0.01, 0.005]
+    noise1_list = [10.0, 5.0, 1.0]
+    noise2_list = [10.0, 5.0, 1.0, None]
 
-    for seed in seeds:
-        print(f'Seed {seed} start...')
-        random.seed(seed)
-        np.random.seed(seed)
-        torch.manual_seed(seed)
+    idx = 0    
+    for gamma in gamma_list:
+        for learning_rate in lr_list:
+            for noise1 in noise1_list:
+                for noise2 in noise2_list:
+                    se_list = []
+                    idx += 1
 
-        env = Env(**env_kwargs)
-        agent_instance = Agent()
+                    for seed in seeds:
+                        # print(f'Seed {seed} start...')
+                        random.seed(seed)
+                        np.random.seed(seed)
+                        torch.manual_seed(seed)
 
-        se = calculate_se(episodes, env, agent_instance)
-        se_list.append(se)
+                        env = Env(**env_kwargs)
+                        agent_instance = Agent(learning_rate=learning_rate, gamma=gamma, noise1=noise1, noise2=noise2)
+
+                        se = calculate_se(episodes, env, agent_instance)
+                        se_list.append(round(se,2))
     
-    print(f'Avg sample efficiency score : {np.mean(se_list)}')
+                    print(f'({idx}) lr:{learning_rate} / gamma:{gamma} / noise1:{noise1} / noise2:{noise2} / {se_list} / Avg sample efficiency score : {np.mean(se_list)}')
 
-    with open(f"{cur_abs}/{env_str}-se.txt", "a") as f:
-        f.write(f"Team{team_number}:{np.mean(se_list)}")
+    # with open(f"{cur_abs}/{env_str}-se.txt", "a") as f:
+    #     f.write(f"Team{team_number}:{np.mean(se_list)}")
 
 
 if __name__ == "__main__":
