@@ -3,7 +3,7 @@ import numpy as np
 def calculate_performance(episodes, env, agent):
 
     episodic_returns = []
-    
+    max_reward = 0
     for epi in range(episodes):
         
         s = env.reset()
@@ -18,13 +18,18 @@ def calculate_performance(episodes, env, agent):
             s = ns
         
         episodic_returns.append(cum_reward)  
+        if cum_reward>=max_reward:
+            max_reward = cum_reward     
+    print(max_reward)
+    print(np.sum(episodic_returns))
+    
     
     return np.sum(episodic_returns)
 
 def calculate_sample_efficiency(episodes, env, agent):
 
     episodic_returns = []
-    
+    max_reward = 0
     for epi in range(episodes):
         
         s = env.reset() 
@@ -39,7 +44,14 @@ def calculate_sample_efficiency(episodes, env, agent):
             agent.update(ns, action, reward)
             s = ns
         
-        episodic_returns.append(cum_reward)       
-                    
+        episodic_returns.append(cum_reward)  
+        if cum_reward>=max_reward:
+            max_reward = cum_reward     
+    print(max_reward)
+    print(np.sum(episodic_returns))
+
+    agent.save_weights()
+
+
     return np.sum(episodic_returns)
 
