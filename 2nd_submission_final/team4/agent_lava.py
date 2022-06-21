@@ -12,6 +12,9 @@ class agent():
         self.model = torch.nn.Sequential(
             torch.nn.Linear(self.nS,self.nA,bias=False)
         )
+        self.value_model = torch.nn.Sequential(
+            torch.nn.Linear(self.nS,1,bias=False)
+        )
 
         self.gamma = gamma
         self.noise1 = noise1
