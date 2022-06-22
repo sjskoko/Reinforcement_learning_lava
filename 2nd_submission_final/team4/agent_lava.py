@@ -5,7 +5,7 @@ import math
 
 class agent():
     
-    def __init__(self, learning_rate=0.005, gamma=0.98, noise1=100.0, noise2=None):
+    def __init__(self, learning_rate=0.005, gamma=0.98, noise1=50.0, noise2=1):
         
         self.nS = 60
         self.nA = 4
@@ -28,13 +28,13 @@ class agent():
         noise2_tmp = self.noise2
         if self.noise2 == None:
             noise2_tmp = 0
-        self.model.load_state_dict(torch.load(f'C:/Users/TFG256XG/Documents/GitHub/Reinforcement_learning_lava/2nd_submission_final/models/{self.learning_rate}_{self.gamma}_{self.noise1}_{noise2_tmp}.pt'))
+        self.model.load_state_dict(torch.load(f'C:/Users/sjsko/PycharmProjects/Reinforcement_learning_lava/2nd_submission_final/models/{self.learning_rate}_{self.gamma}_{self.noise1}_{noise2_tmp}.pt'))
 
     def save_weights(self):
         noise2_tmp = self.noise2
         if self.noise2 == None:
             noise2_tmp = 0
-        torch.save(self.model.state_dict(), f'C:/Users/TFG256XG/Documents/GitHub/Reinforcement_learning_lava/2nd_submission_final/models/{self.learning_rate}_{self.gamma}_{self.noise1}_{noise2_tmp}.pt')
+        torch.save(self.model.state_dict(), f'C:/Users/sjsko/PycharmProjects/Reinforcement_learning_lava/2nd_submission_final/models/{self.learning_rate}_{self.gamma}_{self.noise1}_{noise2_tmp}.pt')
 
     def action(self, state):
         self.step += 1
