@@ -20,8 +20,8 @@ def calculate_performance(episodes, env, agent):
         episodic_returns.append(cum_reward)  
         if cum_reward>=max_reward:
             max_reward = cum_reward     
-    print(max_reward)
-    print(np.sum(episodic_returns))
+    # print(max_reward)
+    # print(np.sum(episodic_returns))
     
     
     return np.sum(episodic_returns)
@@ -47,11 +47,8 @@ def calculate_sample_efficiency(episodes, env, agent):
         episodic_returns.append(cum_reward)  
         if cum_reward>=max_reward:
             max_reward = cum_reward     
-    print(max_reward)
-    print(np.sum(episodic_returns))
-
-    agent.save_weights()
-
+    # print(max_reward)
+    # print(np.sum(episodic_returns))
 
     return np.sum(episodic_returns)
 
