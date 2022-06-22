@@ -5,7 +5,7 @@ import math
 
 class agent():
     
-    def __init__(self, learning_rate=0.005, gamma=0.98, noise1=50.0, noise2=1):
+    def __init__(self, learning_rate=0.005, gamma=0.98, noise1=100.0, noise2=1):
         
         self.nS = 60
         self.nA = 4
